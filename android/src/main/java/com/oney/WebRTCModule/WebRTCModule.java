@@ -405,20 +405,18 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
         }
     }
 
-    public MediaStreamTrack getTrack(String trackId) {
-        MediaStreamTrack track = getLocalTrack(trackId);
-
-        if (track == null) {
-            for (int i = 0, size = mPeerConnectionObservers.size(); i < size; i++) {
-                PeerConnectionObserver pco = mPeerConnectionObservers.valueAt(i);
-                track = pco.remoteTracks.get(trackId);
-                if (track != null) {
-                    break;
-                }
-            }
+    public MediaStreamTrack getTrack(int pcId, String trackId) {
+        if (pcId == -1) {
+            return getLocalTrack(trackId);
         }
 
-        return track;
+        PeerConnectionObserver pco = mPeerConnectionObservers.get(pcId);
+        if (pco == null) {
+            Log.d(TAG, "getTrack(): could not find PeerConnection");
+            return null;
+        }
+
+        return pco.remoteTracks.get(trackId);
     }
 
     MediaStreamTrack getLocalTrack(String trackId) {
@@ -475,7 +473,7 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
                                     SerializeUtils.parseTransceiverOptions(options.getMap("init")));
                         } else if (options.hasKey("trackId")) {
                             String trackId = options.getString("trackId");
-                            MediaStreamTrack track = getTrack(trackId);
+                            MediaStreamTrack track = getLocalTrack(trackId);
                             transceiver = pco.addTransceiver(
                                     track, SerializeUtils.parseTransceiverOptions(options.getMap("init")));
 
@@ -712,41 +710,57 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void mediaStreamAddTrack(String streamId, String trackId) {
+    public void mediaStreamAddTrack(String streamId, int pcId, String trackId) {
         ThreadUtils.runOnExecutor(() -> {
             MediaStream stream = localStreams.get(streamId);
-            MediaStreamTrack track = getTrack(trackId);
-
-            if (stream == null || track == null) {
-                Log.d(TAG, "mediaStreamAddTrack() stream || track is null");
+            if (stream == null) {
+                Log.d(TAG, "mediaStreamAddTrack() could not find stream " + streamId);
                 return;
             }
 
+            MediaStreamTrack track = getTrack(pcId, trackId);
+            if (track == null) {
+                Log.d(TAG, "mediaStreamAddTrack() could not find track " + trackId);
+                return;
+            }
+
+            boolean success;
             String kind = track.kind();
             if ("audio".equals(kind)) {
-                stream.addTrack((AudioTrack) track);
+                success = stream.addTrack((AudioTrack) track);
             } else if ("video".equals(kind)) {
-                stream.addTrack((VideoTrack) track);
+                success = stream.addTrack((VideoTrack) track);
+            }
+            if (!success) {
+                Log.d(TAG, "mediaStreamAddTrack() error adding track " + trackId + " to stream " + streamId);
             }
         });
     }
 
     @ReactMethod
-    public void mediaStreamRemoveTrack(String streamId, String trackId) {
+    public void mediaStreamRemoveTrack(String streamId, int pcId, String trackId) {
         ThreadUtils.runOnExecutor(() -> {
             MediaStream stream = localStreams.get(streamId);
-            MediaStreamTrack track = getTrack(trackId);
-
-            if (stream == null || track == null) {
-                Log.d(TAG, "mediaStreamRemoveTrack() stream || track is null");
+            if (stream == null) {
+                Log.d(TAG, "mediaStreamRemoveTrack() could not find stream " + streamId);
                 return;
             }
 
+            MediaStreamTrack track = getTrack(pcId, trackId);
+            if (track == null) {
+                Log.d(TAG, "mediaStreamRemoveTrack() could not find track " + trackId);
+                return;
+            }
+
+            boolean success;
             String kind = track.kind();
             if ("audio".equals(kind)) {
-                stream.removeTrack((AudioTrack) track);
+                success = stream.removeTrack((AudioTrack) track);
             } else if ("video".equals(kind)) {
-                stream.removeTrack((VideoTrack) track);
+                success = stream.removeTrack((VideoTrack) track);
+            }
+            if (!success) {
+                Log.d(TAG, "mediaStreamRemoveTrack() error adding track " + trackId + " to stream " + streamId);
             }
         });
     }
@@ -778,13 +792,15 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void mediaStreamTrackSetEnabled(String id, boolean enabled) {
+    public void mediaStreamTrackSetEnabled(int, pcId, String id, boolean enabled) {
         ThreadUtils.runOnExecutor(() -> {
-            MediaStreamTrack track = getTrack(id);
+            MediaStreamTrack track = getTrack(pcId, id);
             if (track == null) {
-                Log.d(TAG, "mediaStreamTrackSetEnabled() track is null");
+                Log.d(TAG, "mediaStreamTrackSetEnabled() could not find track " + id);
                 return;
-            } else if (track.enabled() == enabled) {
+            }
+
+            if (track.enabled() == enabled) {
                 return;
             }
             track.setEnabled(enabled);
@@ -803,16 +819,20 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void mediaStreamTrackSetVolume(String id, double volume) {
+    public void mediaStreamTrackSetVolume(int pcId, String id, double volume) {
         ThreadUtils.runOnExecutor(() -> {
-            MediaStreamTrack track = getTrack(id);
+            MediaStreamTrack track = getTrack(pcId, id);
             if (track == null) {
-                Log.d(TAG, "mediaStreamTrackSetVolume() track is null");
-            } else if (!(track instanceof AudioTrack)) {
-                Log.d(TAG, "mediaStreamTrackSetVolume() track is not an AudioTrack!");
-            } else {
-                ((AudioTrack) track).setVolume(volume);
+                Log.d(TAG, "mediaStreamTrackSetVolume() could not find track " + id);
+                return;
             }
+
+            if (!(track instanceof AudioTrack)) {
+                Log.d(TAG, "mediaStreamTrackSetVolume() track is not an AudioTrack!");
+                return;
+            }
+
+            ((AudioTrack) track).setVolume(volume);
         });
     }
 
