@@ -172,21 +172,9 @@ export default class RTCPeerConnection extends defineCustomEventTarget(...PEER_C
         this.remoteDescription = new RTCSessionDescription(newSdp);
     }
 
-    getStats() {
-        return WebRTCModule.peerConnectionGetStats(this._peerConnectionId).then(data => {
-            /* On both Android and iOS it is faster to construct a single
-            JSON string representing the Map of StatsReports and have it
-            pass through the React Native bridge rather than the Map of
-            StatsReports. While the implementations do try to be faster in
-            general, the stress is on being faster to pass through the React
-            Native bridge which is a bottleneck that tends to be visible in
-            the UI when there is congestion involving UI-related passing.
-
-            TODO Implement the logic for filtering the stats based on 
-            the sender/receiver
-            */
-            return new Map(JSON.parse(data));
-        });
+    async getStats() {
+        let data = await WebRTCModule.peerConnectionGetStats(this._peerConnectionId);
+        return JSON.parse(data);
     }
 
     getLocalStreams() {

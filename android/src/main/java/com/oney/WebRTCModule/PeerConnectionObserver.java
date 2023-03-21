@@ -43,6 +43,7 @@ class PeerConnectionObserver implements PeerConnection.Observer {
     final Map<String, MediaStreamTrack> remoteTracks;
     private final VideoTrackAdapter videoTrackAdapters;
     private final WebRTCModule webRTCModule;
+    private RtpStats rtpStat;
 
     PeerConnectionObserver(WebRTCModule webRTCModule, int id) {
         this.webRTCModule = webRTCModule;
@@ -52,6 +53,7 @@ class PeerConnectionObserver implements PeerConnection.Observer {
         this.remoteStreams = new HashMap<>();
         this.remoteTracks = new HashMap<>();
         this.videoTrackAdapters = new VideoTrackAdapter(webRTCModule, id);
+        this.rtpStat = new RtpStats();
     }
 
     /**
@@ -229,8 +231,12 @@ class PeerConnectionObserver implements PeerConnection.Observer {
 
     void getStats(Promise promise) {
         peerConnection.getStats(rtcStatsReport -> {
-            promise.resolve(StringUtils.statsToJSON(rtcStatsReport));
-        });
+//            JSONObject rtpStats = rtpStat.computeRTPStatsFull(rtcStatsReport);
+            String data = rtpStat.computeRTPStatsFull(rtcStatsReport);
+            Log.e(TAG, "@@@: " + data);
+            promise.resolve(data);
+//            promise.resolve(StringUtils.statsToJSON(rtcStatsReport));
+        }, null);
     }
 
     @Override
