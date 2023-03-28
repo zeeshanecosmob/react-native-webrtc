@@ -231,11 +231,11 @@ class PeerConnectionObserver implements PeerConnection.Observer {
 
     void getStats(Promise promise) {
         peerConnection.getStats(rtcStatsReport -> {
-//            JSONObject rtpStats = rtpStat.computeRTPStatsFull(rtcStatsReport);
-            String data = rtpStat.computeRTPStatsFull(rtcStatsReport);
             Log.e(TAG, "@@@: " + data);
-            promise.resolve(data);
-//            promise.resolve(StringUtils.statsToJSON(rtcStatsReport));
+            // String data = rtpStat.computeRTPStatsFull(rtcStatsReport);
+            // promise.resolve(data);
+           JSONObject rtpStats = rtpStat.computeRTPStats(rtcStatsReport);
+           promise.resolve(StringUtils.statsToJSON(rtcStatsReport));
         }, null);
     }
 
