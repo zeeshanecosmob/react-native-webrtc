@@ -597,9 +597,9 @@ public class RtpStats {
             localStats.remove("codec");
             rtpStats.put("local", localStats);
             rtpStats.put("remote", remoteStats);
-            rtpStats.put("networkDownlinkSpeed", getNetworkDownlinkSpeed());
-            rtpStats.put("networkType", getNetworkType());
-            rtpStats.put("networkEffectiveType", getNetworkEffectiveType());
+            // rtpStats.put("networkDownlinkSpeed", getNetworkDownlinkSpeed());
+            // rtpStats.put("networkType", getNetworkType());
+            // rtpStats.put("networkEffectiveType", getNetworkEffectiveType());
 //            printMediaMetric(localStats, remoteStats);
 //                fetchAudioLevels();
         } catch (Exception exception) {
